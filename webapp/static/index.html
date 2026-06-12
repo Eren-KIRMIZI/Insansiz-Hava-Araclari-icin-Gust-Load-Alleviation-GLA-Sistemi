@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLA Digital Twin - Gust Load Alleviation System</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0e17; color: #e0e6f0; overflow-x: hidden; }
+.header { background: linear-gradient(135deg, #0f1a2e, #1a2d4a); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a3f5f; }
+.header h1 { font-size: 20px; font-weight: 600; letter-spacing: 1px; }
+.header h1 span { color: #4fc3f7; }
+.header .badge { background: #1a3a5c; padding: 4px 14px; border-radius: 12px; font-size: 12px; color: #90caf9; border: 1px solid #2a5a8c; }
+.dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; height: calc(100vh - 60px); }
+.panel { background: #111827; border-radius: 10px; border: 1px solid #1e2d42; overflow: hidden; display: flex; flex-direction: column; }
+.panel-header { padding: 10px 16px; background: #161f33; border-bottom: 1px solid #1e2d42; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 500; }
+.panel-header .status { font-size: 11px; padding: 2px 10px; border-radius: 8px; }
+.status-active { background: #1b5e20; color: #81c784; }
+.status-inactive { background: #5e1b1b; color: #ef9a9a; }
+.panel-body { flex: 1; padding: 8px; overflow: hidden; position: relative; }
+.kpi-row { display: flex; gap: 8px; padding: 6px 12px; }
+.kpi { background: #161f33; border-radius: 6px; padding: 6px 12px; flex: 1; text-align: center; }
+.kpi .label { font-size: 10px; color: #78909c; text-transform: uppercase; }
+.kpi .value { font-size: 18px; font-weight: 700; font-family: 'Courier New', monospace; margin-top: 2px; }
+.kpi .value.green { color: #66bb6a; }
+.kpi .value.blue { color: #42a5f5; }
+.kpi .value.yellow { color: #ffca28; }
+.kpi .value.purple { color: #ab47bc; }
+.controls { display: flex; gap: 8px; padding: 6px 12px; align-items: center; flex-wrap: wrap; }
+.controls button { background: #1a2d4a; border: 1px solid #2a4a6a; color: #e0e6f0; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+.controls button:hover { background: #2a4060; }
+.controls button.active { background: #1b5e20; border-color: #388e3c; }
+.controls button.danger { background: #5e1b1b; border-color: #8e3838; }
+.controls input[type="range"] { width: 80px; accent-color: #4fc3f7; }
+.controls label { font-size: 11px; color: #90a4ae; }
+#chart-container { width: 100%; height: 100%; position: relative; }
+#wing-canvas, #flight-canvas { width: 100%; height: 100%; display: block; }
+.tab-bar { display: flex; background: #0f1a2e; border-bottom: 1px solid #1e2d42; }
+.tab { padding: 8px 16px; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; color: #78909c; }
+.tab.active { color: #4fc3f7; border-bottom-color: #4fc3f7; }
+.tab-content { flex: 1; position: relative; }
+@media (max-width: 900px) { .dashboard { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>GLA <span>Digital Twin</span></h1>
+  <div style="display:flex;gap:16px;align-items:center;font-size:12px">
+    <span id="fps-display">FPS: 0</span>
+    <span id="time-display">t: 0.00 s</span>
+    <span class="badge">USI-R1B40-0212-23</span>
+  </div>
+</div>
+
+<div class="dashboard">
+  <!-- 2D Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <span>2D Telemetry Dashboard</span>
+      <span id="gla-status-2d" class="status status-active">GLA ACTIVE</span>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">Root Moment</div><div class="value green" id="kpi-moment">0.00</div></div>
+      <div class="kpi"><div class="label">Tip Disp (m)</div><div class="value blue" id="kpi-disp">0.000</div></div>
+      <div class="kpi"><div class="label">Reduction</div><div class="value yellow" id="kpi-reduction">0.0%</div></div>
+      <div class="kpi"><div class="label">Control (°)</div><div class="value purple" id="kpi-control">0.0</div></div>
+    </div>
+    <div class="controls">
+      <button id="btn-gla" class="active">GLA: ON</button>
+      <button id="btn-reset" class="danger">Reset</button>
+      <label>Gust:</label><input type="range" id="gust-amp" min="2" max="20" value="10" step="1">
+      <label id="gust-label">10 m/s</label>
+      <label>Gain:</label><input type="range" id="gain-scale" min="0.1" max="3.0" value="1.0" step="0.1">
+      <label id="gain-label">1.0x</label>
+    </div>
+    <div class="panel-body"><div id="chart-container"><canvas id="chart-main"></canvas></div></div>
+  </div>
+
+  <!-- 3D + Flight Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <span>3D Visualization</span>
+      <div class="tab-bar" style="background:transparent;border:none">
+        <span class="tab active" data-tab="wing">Wing</span>
+        <span class="tab" data-tab="flight">Flight</span>
+      </div>
+    </div>
+    <div class="panel-body" style="padding:0">
+      <div class="tab-content" id="tab-wing" style="display:block"><canvas id="wing-canvas"></canvas></div>
+      <div class="tab-content" id="tab-flight" style="display:none"><canvas id="flight-canvas"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
