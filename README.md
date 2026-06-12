@@ -4,6 +4,8 @@
 
 ---
 
+Site Linki: https://frontend-one-roan-50.vercel.app/
+
 ## Icerik
 
 1. [Giris ve Motivasyon](#1-giris-ve-motivasyon)
