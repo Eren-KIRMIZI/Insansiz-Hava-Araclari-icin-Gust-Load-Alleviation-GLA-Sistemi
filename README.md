@@ -6,6 +6,17 @@
 
 Site Linki: https://frontend-one-roan-50.vercel.app/
 
+---
+<img width="1352" height="632" alt="image" src="https://github.com/user-attachments/assets/ab3a8737-dcf8-4a6d-9abe-a15ff2467d91" />
+
+<img width="1045" height="436" alt="image" src="https://github.com/user-attachments/assets/26f03ff3-622d-4f8d-a40b-81b4651dd7f9" />
+
+<img width="1045" height="421" alt="image" src="https://github.com/user-attachments/assets/428c482e-43a4-4678-be2d-b27ec955665c" />
+
+<img width="1287" height="285" alt="image" src="https://github.com/user-attachments/assets/a6295800-8fad-4e19-8224-ab6799c0e275" />
+
+---
+
 ## Icerik
 
 1. [Giris ve Motivasyon](#1-giris-ve-motivasyon)
